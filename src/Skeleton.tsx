@@ -1,51 +1,45 @@
+import type { CSSProperties } from 'react'
 import type { SkeletonProps } from './Skeleton.types'
 import './Skeleton.css'
 
 const cls = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(' ')
 
-/** akong Skeleton · Web · DOM `<button>` */
+/** 数字 → '<n>px' · 字符串原样返 (支持 '50%' / '12rem' / 'auto') */
+function toCssLength(v: number | string): string {
+  return typeof v === 'number' ? `${v}px` : v
+}
+
+/** akong Skeleton · Web · `<div>` + CSS animation */
 export function Skeleton(props: SkeletonProps) {
   const {
-    variant = 'primary',
-    size = 'md',
-    disabled = false,
-    loading = false,
-    fullWidth = false,
-    iconLeft,
-    iconRight,
-    children,
-    onClick,
-    onPress,
-    type = 'button',
-    ariaLabel,
+    width = '100%',
+    height,
+    variant = 'pulse',
+    radius = 'md',
+    className,
+    style,
+    ariaLabel = 'Loading',
   } = props
 
-  const handle = () => {
-    if (disabled || loading) return
-    onClick?.()
-    onPress?.()
+  const merged: CSSProperties = {
+    width: toCssLength(width),
+    height: toCssLength(height),
+    ...style,
   }
 
   return (
-    <button
-      type={type}
+    <div
+      role="status"
       aria-label={ariaLabel}
-      aria-busy={loading || undefined}
-      aria-disabled={disabled || undefined}
-      disabled={disabled}
-      onClick={handle}
+      aria-busy="true"
       className={cls(
         'ak-skeleton',
         `ak-skeleton--${variant}`,
-        `ak-skeleton--${size}`,
-        fullWidth && 'ak-skeleton--full-width',
-        loading && 'ak-skeleton--loading',
+        `ak-skeleton--radius-${radius}`,
+        className,
       )}
-    >
-      {iconLeft && <span className="ak-skeleton__icon">{iconLeft}</span>}
-      {children && <span>{children}</span>}
-      {iconRight && <span className="ak-skeleton__icon">{iconRight}</span>}
-    </button>
+      style={merged}
+    />
   )
 }
 

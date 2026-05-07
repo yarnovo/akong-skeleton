@@ -1,6 +1,6 @@
 # @akong/skeleton
 
-akong Skeleton · 极简 · 跨端 (Web + React Native)
+akong Skeleton · 加载占位 · pulse / shimmer 动画 · 任意尺寸 · 跨端 (Web + React Native)
 
 ## Demo
 
@@ -19,11 +19,17 @@ import { Skeleton } from '@akong/skeleton'
 import '@akong/skeleton/style.css'
 import '@akong/tokens/style.css'  // 顶层引一次 token (整个 app 共用)
 
-<Skeleton variant="primary" size="md" onClick={...}>下单</Skeleton>
-<Skeleton variant="secondary" loading>处理中</Skeleton>
-<Skeleton variant="ghost" iconLeft={<Plus />}>新建</Skeleton>
-<Skeleton variant="destructive" disabled>删除</Skeleton>
-<Skeleton variant="link">查看详情</Skeleton>
+// 单行文字占位
+<Skeleton height={16} />
+
+// shimmer 大块卡片
+<Skeleton width="100%" height={200} variant="shimmer" radius="lg" />
+
+// 圆形头像
+<Skeleton width={48} height={48} radius="full" />
+
+// 自定义 className / style
+<Skeleton height={14} width="60%" className="my-mb" style={{ marginBottom: 8 }} />
 ```
 
 ## React Native
@@ -31,7 +37,8 @@ import '@akong/tokens/style.css'  // 顶层引一次 token (整个 app 共用)
 ```tsx
 import { Skeleton } from '@akong/skeleton'
 
-<Skeleton variant="primary" size="md" onPress={...}>下单</Skeleton>
+<Skeleton width={200} height={16} variant="pulse" radius="md" />
+<Skeleton width={48}  height={48} radius="full" />
 ```
 
 Metro bundler 自动按 `.native.tsx` 后缀解析 · 同 `import` 路径两端通用。
@@ -40,30 +47,26 @@ Metro bundler 自动按 `.native.tsx` 后缀解析 · 同 `import` 路径两端�
 
 | Prop | Type | Default | 说明 |
 |---|---|---|---|
-| variant | `primary` / `secondary` / `ghost` / `destructive` / `link` | `primary` | |
-| size | `sm` / `md` / `lg` | `md` | |
-| disabled | boolean | false | |
-| loading | boolean | false | 转圈 + 锁交互 |
-| fullWidth | boolean | false | |
-| iconLeft / iconRight | ReactNode | — | |
-| onClick / onPress | () => void | — | Web 用 onClick · RN 用 onPress · 都传也行 |
-| ariaLabel | string | — | a11y |
+| width | `number \| string` | `'100%'` | 数字按 px · 字符串原样 (`'50%'` / `'12rem'`) |
+| height | `number \| string` | **必填** | 没默认 · skeleton 永远要明确占位高度 |
+| variant | `'pulse' \| 'shimmer'` | `'pulse'` | pulse: opacity 闪 · shimmer: 渐变扫光 |
+| radius | `'sm' \| 'md' \| 'lg' \| 'full'` | `'md'` | 跟 token `--ak-radius-*` |
+| className | `string` | — | Web 专用 · 拼自定义 class |
+| style | `CSSProperties` | — | Web 专用 · 内联 style 合并 (优先级高于内置 width/height) |
+| nativeStyle | `StyleProp<ViewStyle>` | — | RN 专用 · 自定义 style |
+| ariaLabel | `string` | `'Loading'` | a11y · 屏幕阅读器朗读 |
+
+## 视觉
+
+- 底色: `var(--ak-bg-subtle)` (Web) / `tokens.<scheme>.bgSubtle` (RN)
+- pulse: opacity 0.5 ↔ 1 · 1.4s ease-in-out infinite
+- shimmer: linear-gradient(bg-subtle → bg-hover → bg-subtle) · 1.4s linear infinite
+- 自动响应 `prefers-reduced-motion` (Web 直接 `animation: none`)
 
 ## 设计原则
 
 - **一份 props**：Web 跟 RN 共享 `Skeleton.types.ts`
-- **两端实现**：`Skeleton.tsx` (Web · DOM `<button>`) + `Skeleton.native.tsx` (RN · `<Pressable>`)
-- **触摸目标 ≥ 44pt**：所有 size 都满足 iOS HIG
-- **极简反馈**：active 0.7 opacity (不缩放 · 不晃)
+- **两端实现**：`Skeleton.tsx` (Web · `<div>` + CSS animation) + `Skeleton.native.tsx` (RN · `Animated.View` 循环)
+- **a11y**：`role="status"` + `aria-busy="true"` + `aria-label="Loading"` (可改)
+- **不传交互**：skeleton 是占位 · `pointer-events: none` (Web) · 无 onPress (RN)
 - **token 100% 接 @akong/tokens**：改一处 token 自动 update
-
-## 状态
-
-| 状态 | Web | RN |
-|---|---|---|
-| default | `:not(:active)` | `pressed: false` |
-| active | `:active` opacity 0.7 | `pressed: true` opacity 0.7 |
-| hover | `:hover` (桌面 only) | — |
-| disabled | `disabled` opacity 0.4 | `disabled` opacity 0.4 |
-| loading | `.ak-btn--loading` 转圈 | `<ActivityIndicator />` |
-| focus | `:focus-visible` outline | RN 默认 a11y focus |

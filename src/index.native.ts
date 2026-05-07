@@ -1,2 +1,2 @@
 export { Skeleton, default } from './Skeleton.native'
-export type { SkeletonProps, SkeletonVariant, SkeletonSize } from './Skeleton.types'
+export type { SkeletonProps, SkeletonVariant, SkeletonRadius } from './Skeleton.types'

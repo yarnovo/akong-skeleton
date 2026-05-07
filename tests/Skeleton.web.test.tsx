@@ -1,108 +1,114 @@
 /**
  * Web 端组件测试 · vitest + @testing-library/react
  *
- * 7 件事:
- * - 渲染输出 (children / variant / size 反映)
- * - 用户交互 (click)
- * - 状态变化 (loading / disabled)
- * - 受控行为 (handler 触发)
- * - 边界 (空 children · ariaLabel)
- * - 防误触 (disabled / loading 不触发)
- * - icon 渲染
+ * 覆盖:
+ * - 默认 props 渲染 (width 100% / pulse / radius md / a11y)
+ * - variant class (pulse vs shimmer)
+ * - width/height 反映在 inline style (number → px · string 原样)
+ * - radius class (sm/md/lg/full)
+ * - className/style 透传 + 不被覆盖
+ * - 行为契约 (共享 spec ≥ 7 cases)
  */
 
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { Skeleton } from '../src/Skeleton'
-import { buttonScenarios } from '../src/Skeleton.behavior'
+import { skeletonScenarios } from '../src/Skeleton.behavior'
+
+const getEl = (container: HTMLElement) => container.querySelector('.ak-skeleton') as HTMLDivElement
 
 describe('Skeleton (Web) · 渲染', () => {
-  it('渲染 children', () => {
-    render(<Skeleton>Click me</Skeleton>)
-    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument()
+  it('默认 props · 渲染带 height 的占位 · width 100% · pulse · radius md', () => {
+    const { container } = render(<Skeleton height={16} />)
+    const el = getEl(container)
+    expect(el).toBeTruthy()
+    expect(el.style.width).toBe('100%')
+    expect(el.style.height).toBe('16px')
+    expect(el.classList.contains('ak-skeleton--pulse')).toBe(true)
+    expect(el.classList.contains('ak-skeleton--radius-md')).toBe(true)
   })
 
-  it('应用 variant class', () => {
-    const { container } = render(<Skeleton variant="destructive">删除</Skeleton>)
-    expect(container.querySelector('.ak-skeleton--destructive')).toBeTruthy()
+  it('a11y · role=status · aria-busy=true · 默认 ariaLabel=Loading', () => {
+    render(<Skeleton height={16} />)
+    const el = screen.getByRole('status')
+    expect(el).toHaveAttribute('aria-busy', 'true')
+    expect(el).toHaveAttribute('aria-label', 'Loading')
   })
 
-  it('应用 size class', () => {
-    const { container } = render(<Skeleton size="lg">Big</Skeleton>)
-    expect(container.querySelector('.ak-skeleton--lg')).toBeTruthy()
-  })
-
-  it('fullWidth 加 class', () => {
-    const { container } = render(<Skeleton fullWidth>占满</Skeleton>)
-    expect(container.querySelector('.ak-skeleton--full-width')).toBeTruthy()
-  })
-
-  it('icon-only · ariaLabel 必填 · 不报 a11y 错', () => {
-    render(<Skeleton ariaLabel="搜索" iconLeft="🔍" />)
-    expect(screen.getByRole('button', { name: '搜索' })).toBeInTheDocument()
+  it('自定义 ariaLabel 透传', () => {
+    render(<Skeleton height={16} ariaLabel="正在加载用户资料" />)
+    expect(screen.getByLabelText('正在加载用户资料')).toBeInTheDocument()
   })
 })
 
-describe('Skeleton (Web) · 状态', () => {
-  it('disabled 加 attribute', () => {
-    render(<Skeleton disabled>禁用</Skeleton>)
-    expect(screen.getByRole('button')).toBeDisabled()
+describe('Skeleton (Web) · variant', () => {
+  it('variant=pulse · class ak-skeleton--pulse', () => {
+    const { container } = render(<Skeleton height={16} variant="pulse" />)
+    expect(getEl(container).classList.contains('ak-skeleton--pulse')).toBe(true)
+    expect(getEl(container).classList.contains('ak-skeleton--shimmer')).toBe(false)
   })
 
-  it('loading 加 aria-busy + class', () => {
-    const { container } = render(<Skeleton loading>加载</Skeleton>)
-    expect(screen.getByRole('button')).toHaveAttribute('aria-busy', 'true')
-    expect(container.querySelector('.ak-skeleton--loading')).toBeTruthy()
+  it('variant=shimmer · class ak-skeleton--shimmer', () => {
+    const { container } = render(<Skeleton height={16} variant="shimmer" />)
+    expect(getEl(container).classList.contains('ak-skeleton--shimmer')).toBe(true)
+    expect(getEl(container).classList.contains('ak-skeleton--pulse')).toBe(false)
+  })
+})
+
+describe('Skeleton (Web) · width / height', () => {
+  it('数字 width / height → px', () => {
+    const { container } = render(<Skeleton width={200} height={40} />)
+    expect(getEl(container).style.width).toBe('200px')
+    expect(getEl(container).style.height).toBe('40px')
+  })
+
+  it('字符串 width 原样 (50%)', () => {
+    const { container } = render(<Skeleton width="50%" height={12} />)
+    expect(getEl(container).style.width).toBe('50%')
+  })
+
+  it('字符串 height 原样 (1.5rem)', () => {
+    const { container } = render(<Skeleton height="1.5rem" />)
+    expect(getEl(container).style.height).toBe('1.5rem')
+  })
+})
+
+describe('Skeleton (Web) · radius', () => {
+  it.each<['sm' | 'md' | 'lg' | 'full']>([['sm'], ['md'], ['lg'], ['full']])(
+    'radius=%s · class ak-skeleton--radius-%s',
+    (r) => {
+      const { container } = render(<Skeleton height={16} radius={r} />)
+      expect(getEl(container).classList.contains(`ak-skeleton--radius-${r}`)).toBe(true)
+    },
+  )
+})
+
+describe('Skeleton (Web) · 透传', () => {
+  it('className 透传 · 跟内置 class 共存', () => {
+    const { container } = render(<Skeleton height={16} className="my-extra" />)
+    const el = getEl(container)
+    expect(el.classList.contains('my-extra')).toBe(true)
+    expect(el.classList.contains('ak-skeleton')).toBe(true)
+  })
+
+  it('style 透传 · 不被 width/height 覆盖 (用户 style 优先)', () => {
+    const { container } = render(<Skeleton height={16} style={{ marginTop: 8, width: '300px' }} />)
+    const el = getEl(container)
+    expect(el.style.marginTop).toBe('8px')
+    // user style.width 比内置 width prop 优先
+    expect(el.style.width).toBe('300px')
   })
 })
 
 describe('Skeleton (Web) · 行为契约 (共享 spec)', () => {
-  for (const sc of buttonScenarios) {
+  for (const sc of skeletonScenarios) {
     it(sc.name, () => {
-      const onClick = vi.fn()
-      render(<Skeleton {...sc.props} onClick={onClick}>X</Skeleton>)
-      fireEvent.click(screen.getByRole('button'))
-      if (sc.onPressOutcome === 'callback-fired') {
-        expect(onClick).toHaveBeenCalledOnce()
-      } else {
-        expect(onClick).not.toHaveBeenCalled()
-      }
+      const { container } = render(<Skeleton {...sc.props} />)
+      const el = getEl(container)
+      expect(el.style.width).toBe(sc.expectWidth)
+      expect(el.style.height).toBe(sc.expectHeight)
+      expect(el.classList.contains(`ak-skeleton--${sc.expectVariant}`)).toBe(true)
+      expect(el.classList.contains(`ak-skeleton--radius-${sc.expectRadius}`)).toBe(true)
     })
   }
-})
-
-describe('Skeleton (Web) · 双口径回调', () => {
-  it('onClick 跟 onPress 同时传 · 都触发', () => {
-    const onClick = vi.fn()
-    const onPress = vi.fn()
-    render(<Skeleton onClick={onClick} onPress={onPress}>X</Skeleton>)
-    fireEvent.click(screen.getByRole('button'))
-    expect(onClick).toHaveBeenCalledOnce()
-    expect(onPress).toHaveBeenCalledOnce()
-  })
-
-  it('只传 onPress · Web 端 click 也触发', () => {
-    const onPress = vi.fn()
-    render(<Skeleton onPress={onPress}>X</Skeleton>)
-    fireEvent.click(screen.getByRole('button'))
-    expect(onPress).toHaveBeenCalledOnce()
-  })
-})
-
-describe('Skeleton (Web) · 边界', () => {
-  it('空 children + 空 ariaLabel · 仍可渲染 (但不推荐 · TS 应警告)', () => {
-    render(<Skeleton />)
-    expect(screen.getByRole('button')).toBeInTheDocument()
-  })
-
-  it('type=submit · 提交表单', () => {
-    const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault())
-    render(
-      <form onSubmit={onSubmit}>
-        <Skeleton type="submit">提交</Skeleton>
-      </form>,
-    )
-    fireEvent.click(screen.getByRole('button'))
-    expect(onSubmit).toHaveBeenCalledOnce()
-  })
 })
