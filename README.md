@@ -1,5 +1,7 @@
 # @akong/skeleton
 
+> ← 回 [akong design system](https://yarnovo.github.io/akong-core/) 总站
+
 akong Skeleton · 加载占位 · pulse / shimmer 动画 · 任意尺寸 · 跨端 (Web + React Native)
 
 ## Demo
